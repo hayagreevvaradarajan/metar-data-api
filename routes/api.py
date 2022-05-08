@@ -1,0 +1,161 @@
+from os import stat
+from urllib import request, response
+import requests
+from flask import Blueprint
+from flask import request
+import redis
+
+api_bp = Blueprint('api_bp', __name__)
+
+def send_request(code):
+    code = code.upper()
+    response = requests.get(url = f'http://tgftp.nws.noaa.gov/data/observations/metar/stations/{code}.TXT')
+    if response.status_code == 200:
+        data = response.text.split()
+        return data
+    else:
+        return "404, Not Found."
+
+def celsius_to_farenheit(celsius):
+    farenheit = (celsius * 1.8) + 32
+    return "{:0.2f}".format(farenheit)
+
+def knots_to_miles(knots):
+    miles = int(knots) * 1.151
+    return "{:0.2f}".format(miles)
+
+def get_response(response):
+    degrees_to_direction = {
+        "N": {
+            "min": 348.75,
+            "max": 11.25
+        },
+        "NNE": {
+            "min": 11.25,
+            "max": 33.75
+        },
+        "NE": {
+            "min": 33.75,
+            "max": 56.25
+        },
+        "ENE": {
+            "min": 56.25,
+            "max": 78.75
+        },
+        "E": {
+            "min": 78.75,
+            "max": 101.25
+        },
+        "ESE": {
+            "min": 101.25,
+            "max": 123.75
+        },
+        "SE": {
+            "min": 123.75,
+            "max": 146.25
+        },
+        "SSE": {
+            "min": 146.25,
+            "max": 168.75
+        },
+        "S": {
+            "min": 168.75,
+            "max": 191.25
+        },
+        "SSW": {
+            "min": 191.25,
+            "max": 213.75
+        },
+        "SW": {
+            "min": 213.75,
+            "max": 236.25
+        },
+        "WSW": {
+            "min": 236.25,
+            "max": 258.75
+        },
+        "W": {
+            "min": 258.75,
+            "max": 281.25
+        },
+        "WNW": {
+            "min": 281.25,
+            "max": 303.75
+        },
+        "NW": {
+            "min": 303.75,
+            "max": 326.25
+        },
+        "NNW": {
+            "min": 326.25,
+            "max": 348.75
+        },
+    }
+    temp = []
+    station = response[2]
+    last_observation_date = response[0]
+    last_observation_time = response[1]
+    for i in response:
+        if '/' in i:
+            temp.append(i)
+        elif 'KT' in i:
+            wind_group = i
+    wind_degree_direction = float(wind_group[:3])
+    for i in degrees_to_direction.keys():
+        if wind_degree_direction > degrees_to_direction[i]['min'] and wind_degree_direction < degrees_to_direction[i]['max']:
+            wind_cardinal_direction = i
+    if 'G' in wind_group:
+        wind = f'{wind_cardinal_direction} at {knots_to_miles(wind_group[6:-2])} mph ({wind_group[3:5]} gusting to {wind_group[6:-2]} knots)'
+    else:
+        wind = f'{wind_cardinal_direction} at {knots_to_miles(wind_group[3:-2])} mph ({wind_group[3:-2]} knots)'  
+    temperature = temp[1].split('/')[0]
+    if temperature[0] == 'M':
+        celsius = float(temperature[1:]) * -1 
+    else:
+        celsius = float(temperature)
+    farenheit = celsius_to_farenheit(celsius)
+    current_temperature = f'{celsius} C ({farenheit} F)'
+    return [station, last_observation_date, last_observation_time, current_temperature, wind]
+
+def no_cache(scode):
+    response = send_request(scode)
+    if response == "404, Not Found.":
+        return [{
+            "error": "Invalid scode"
+        }, 400]
+    try:
+        response_to_the_client = get_response(response)
+        station = response_to_the_client[0]
+        last_observation_date = response_to_the_client[1]
+        last_observation_time = response_to_the_client[2]
+        temperature = response_to_the_client[3]
+        wind = response_to_the_client[4]
+        data = {
+            'data': {
+                'station': f'{station}',
+                'last_observation': f'{last_observation_date} at {last_observation_time} GMT',
+                'temperature': f'{temperature}',
+                'wind': f'{wind}'
+            }
+        }
+        return [data, 200]
+    except:
+        return [{
+            "error": "Internal server error"
+        }, 500]
+
+@api_bp.route('/ping', methods=['GET'])
+def ping():
+    data = {
+        "data": "pong"
+    }
+    return data, 200
+
+@api_bp.route('/', methods=['GET'])
+def home():
+    r = redis.Redis(host='127.0.0.1', port=6379)
+    cache = request.args.to_dict()['nocache']
+    print(cache)
+    scode = request.args.to_dict()['scode']
+    result = no_cache(scode)
+    return result[0], result[1]
