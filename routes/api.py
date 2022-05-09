@@ -169,12 +169,12 @@ def ping():
 
 @api_bp.route('/', methods=['GET'])
 def home():
-    redis = redis.Redis(host='127.0.0.1', port=6379)
+    r = redis.Redis(host='127.0.0.1', port=6379)
     scode = request.args.to_dict()['scode']
     try:
         nocache = request.args.to_dict()['nocache']
     except:
         nocache = 2
     # result = get_result(scode, int(nocache), r)
-    result = get_result(scode, redis, int(nocache))
+    result = get_result(scode, r, int(nocache))
     return result[0], result[1]
