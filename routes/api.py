@@ -117,7 +117,7 @@ def get_response(response):
     current_temperature = f'{celsius} C ({farenheit} F)'
     return [station, last_observation_date, last_observation_time, current_temperature, wind]
 
-def no_cache(scode):
+def get_result(scode):
     response = send_request(scode)
     if response == "404, Not Found.":
         return [{
@@ -157,5 +157,5 @@ def home():
     cache = request.args.to_dict()['nocache']
     print(cache)
     scode = request.args.to_dict()['scode']
-    result = no_cache(scode)
+    result = get_result(scode, cache, r)
     return result[0], result[1]
