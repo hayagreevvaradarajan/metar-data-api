@@ -1,3 +1,4 @@
+from logging import exception
 from os import stat
 from urllib import request, response
 import requests
@@ -24,7 +25,11 @@ def knots_to_miles(knots):
     miles = int(knots) * 1.151
     return "{:0.2f}".format(miles)
 
-def get_response(response):
+def handle_response(response):
+    if response == "404, Not Found.":
+        return [{
+            "error": "Invalid scode"
+        }, 400]
     degrees_to_direction = {
         "N": {
             "min": 348.75,
@@ -115,31 +120,42 @@ def get_response(response):
         celsius = float(temperature)
     farenheit = celsius_to_farenheit(celsius)
     current_temperature = f'{celsius} C ({farenheit} F)'
-    return [station, last_observation_date, last_observation_time, current_temperature, wind]
-
-def get_result(scode):
-    response = send_request(scode)
-    if response == "404, Not Found.":
-        return [{
-            "error": "Invalid scode"
-        }, 400]
-    try:
-        response_to_the_client = get_response(response)
-        station = response_to_the_client[0]
-        last_observation_date = response_to_the_client[1]
-        last_observation_time = response_to_the_client[2]
-        temperature = response_to_the_client[3]
-        wind = response_to_the_client[4]
-        data = {
+    data = {
             'data': {
                 'station': f'{station}',
                 'last_observation': f'{last_observation_date} at {last_observation_time} GMT',
-                'temperature': f'{temperature}',
+                'temperature': f'{current_temperature}',
                 'wind': f'{wind}'
             }
         }
-        return [data, 200]
-    except:
+    return [data, 200]
+
+def get_result(scode, redis, nocache):
+    if nocache:    
+        accepted_cache = [1, 2]
+        if nocache not in accepted_cache:
+            return [{
+                "error": "Invalid value for nocache"
+            }, 400]
+        if nocache in accepted_cache:
+            if nocache == 1:
+                response = send_request(scode)
+                redis.set(scode, f'{response}')
+            elif nocache == 2:
+                cache = redis.get(scode)
+                if cache: 
+                    response = eval(cache.decode('utf-8'))
+                    print(f'response if cache: {response}')
+                else:
+                    response = send_request(scode)
+                    print(f'response if not cache: {response}')
+                    redis.set(scode, f'{response}')
+    try:
+        response_to_the_client = handle_response(response)
+        print(f'response to the client: {response_to_the_client}')
+        return response_to_the_client
+    except Exception as e:
+        print(f'error: {e}')
         return [{
             "error": "Internal server error"
         }, 500]
@@ -153,9 +169,12 @@ def ping():
 
 @api_bp.route('/', methods=['GET'])
 def home():
-    r = redis.Redis(host='127.0.0.1', port=6379)
-    cache = request.args.to_dict()['nocache']
-    print(cache)
+    redis = redis.Redis(host='127.0.0.1', port=6379)
     scode = request.args.to_dict()['scode']
-    result = get_result(scode, cache, r)
+    try:
+        nocache = request.args.to_dict()['nocache']
+    except:
+        nocache = 2
+    # result = get_result(scode, int(nocache), r)
+    result = get_result(scode, redis, int(nocache))
     return result[0], result[1]
