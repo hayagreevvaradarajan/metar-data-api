@@ -5,6 +5,7 @@ import requests
 from flask import Blueprint
 from flask import request
 import redis
+from datetime import timedelta
 
 api_bp = Blueprint('api_bp', __name__)
 
@@ -140,7 +141,8 @@ def get_result(scode, redis, nocache):
         if nocache in accepted_cache:
             if nocache == 1:
                 response = send_request(scode)
-                redis.set(scode, f'{response}', ex=300000)
+                redis.set(scode, f'{response}', 10)
+                redis.expire(scode, timedelta(seconds=10))
             elif nocache == 2:
                 cache = redis.get(scode)
                 if cache: 

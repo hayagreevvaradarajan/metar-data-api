@@ -47,4 +47,20 @@ Query parameters:
     2. nocache - optional
 Accepted values for nocache: 1
 When thevalue of nocache is 1, live data will be fetched from METAR. The cache will also be refreshed.
+Sample response:
+    200: {
+            "data": {
+                        "last_observation": "2011/03/16 at 05:30 GMT",
+                        "station": "ABBN",
+                        "temperature": "2.0 C (35.60 F)",
+                        "wind": "SW at 4.60 mph (04 knots)"
+                    }
+         },
+    400: {
+            "error": "Invalid scode"
+         },
+    500: {
+            "error": "Internal server error"
+         }
+    
 ```
