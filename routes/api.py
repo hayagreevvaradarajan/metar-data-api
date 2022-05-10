@@ -140,7 +140,7 @@ def get_result(scode, redis, nocache):
         if nocache in accepted_cache:
             if nocache == 1:
                 response = send_request(scode)
-                redis.set(scode, f'{response}')
+                redis.set(scode, f'{response}', ex=300000)
             elif nocache == 2:
                 cache = redis.get(scode)
                 if cache: 
@@ -150,7 +150,7 @@ def get_result(scode, redis, nocache):
                     response = send_request(scode)
                     if response != "404, Not Found.":
                         print(f'response if not cache: {response}')
-                        redis.set(scode, f'{response}')
+                        redis.set(scode, f'{response}', ex=300000)
     try:
         response_to_the_client = handle_response(response)
         print(f'response to the client: {response_to_the_client}')
