@@ -148,8 +148,9 @@ def get_result(scode, redis, nocache):
                     print(f'response if cache: {response}')
                 else:
                     response = send_request(scode)
-                    print(f'response if not cache: {response}')
-                    redis.set(scode, f'{response}')
+                    if response != "404, Not Found.":
+                        print(f'response if not cache: {response}')
+                        redis.set(scode, f'{response}')
     try:
         response_to_the_client = handle_response(response)
         print(f'response to the client: {response_to_the_client}')
@@ -157,7 +158,7 @@ def get_result(scode, redis, nocache):
     except Exception as e:
         print(f'error: {e}')
         return [{
-            "error": "Internal server error"
+            "error": f'{e}'
         }, 500]
 
 @api_bp.route('/ping', methods=['GET'])
@@ -175,6 +176,5 @@ def home():
         nocache = request.args.to_dict()['nocache']
     except:
         nocache = 2
-    # result = get_result(scode, int(nocache), r)
     result = get_result(scode, r, int(nocache))
     return result[0], result[1]
