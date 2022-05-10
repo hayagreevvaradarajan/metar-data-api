@@ -6,3 +6,11 @@
     ```
     pip install -r requirements.txt
     ```
+4. Run the server using the following command:
+    ```
+    flask run
+    ```
+    This will start a server with the url 
+    ```
+    127.0.0.1:5000
+    ```
