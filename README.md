@@ -1,3 +1,6 @@
+# metar-data-api
+This API will make an external request to fetch METAR data and return the latest weather info given a specific station code (scode). It will also cache the received responses for 5 minutes. Until explicitly specified, data will be fetched and returned from the cache and a request to the server will not be made if a particular scode's data is already present in the cache within the 5 minutes.
+
 # Setup and run instructions:
 
 1. Create a virtual environment
@@ -14,19 +17,34 @@
     ```
     http://127.0.0.1:5000
     ```
-5. This API has two endpoints:
-    ```
-    GET /api/ping and GET /api?scode=<scode>&nocache=<nocache>
-    ```
-6. GET /api/ping:
-    ```
-    Return a successful response if a ping to the server is successful.
-    Status codes: 200
-    Accepted request headers(These headers are optional. The API will work even if headers are not specified): content-type: application/json
-    Response header: content-type: application/json
-    Required Request payload: None
-    Sample response: 
-        200: {
-                "data": "pong"
-             }
-    ```
+
+This API supports two endpoints:
+ ```
+GET /api/ping and GET /api?scode=<scode>&nocache=<nocache>
+```
+GET /api/ping:
+```
+Return a successful response if a ping to the server is successful.
+Status codes: 200
+Accepted request headers(These headers are optional. The API will work even if headers are not specified): content-type: application/json
+Response header: content-type: application/json
+Required Request payload: None
+Sample response: 
+    200: {
+            "data": "pong"
+         }
+```
+
+GET /api?scode=<scode>&nocache=<nocache>:
+```
+Returns METAR data as JSON.
+Status codes: 200, 400, 500
+Accepted request headers(These headers are optional. The API will work even if headers are not specified): content-type: application/json
+Response header: content-type: application/json
+Required Request payload: None
+Query parameters: 
+    1. scode - required
+    2. nocache - optional
+Accepted values for nocache: 1
+When thevalue of nocache is 1, live data will be fetched from METAR. The cache will also be refreshed.
+```
