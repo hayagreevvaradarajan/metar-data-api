@@ -1,5 +1,5 @@
 # metar-data-api
-This API will make an external request to fetch METAR data and return the latest weather info given a specific station code (scode). It will also cache the received responses for 5 minutes. Until explicitly specified, data will be fetched and returned from the cache and a request to the server will not be made if a particular scode's data is already present in the cache within the 5 minutes.
+This is a RESTful API built using Flask that will make an external request to fetch METAR data and return the latest weather info given a specific station code (scode). It will also cache the received responses for 5 minutes. Until explicitly specified, data will be fetched and returned from the cache and a request to the server will not be made if a particular scode's data is already present in the cache within the 5 minutes.
 
 # Setup and run instructions:
 
@@ -17,6 +17,11 @@ This API will make an external request to fetch METAR data and return the latest
     ```
     http://127.0.0.1:5000
     ```
+5. Run the redis server using the following command:
+    ```
+    sudo service redis-server start
+    ```
+    Make sure that the redis server is running on 127.0.0.1 and on port 6379. If not, please update line 175 in routes/api.py to reflect the url on which the redis server is running.
 
 This API supports two endpoints:
  ```
