@@ -23,7 +23,7 @@ This is a RESTful API built using Flask that will make an external request to fe
     ```
     This will start a server with the url 
     ```
-    http://127.0.0.1:6379
+    127.0.0.1:6379
     ```
     If not, please update line 175 in routes/api.py to reflect the url on which your redis server is running.
 
